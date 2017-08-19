@@ -12,6 +12,7 @@
 # Pass in convergence tolerance?
 
 import numpy as np
+import sys
 
 # Create feature vectors: n+1 by m matrix of training sets, with x0 initialized to 1
 # Create parameter vector: n+1 by 1 matrix of coefficients
@@ -21,12 +22,13 @@ import numpy as np
 # Write function to simultaneously update parameters until convergence
 # Write function to adjust learning rate
 
-class GradientDescent:
+class GradientDescent(object):
 
     #for n independent variables and m training sets, n arrays of m values are passed in, with first array being y values
     def __init__(self, learningRate, yList, xLists):
         # Define learning rate
         self.learningRate = learningRate
+        self.adjRate = 3
 
         # Create m by 1 vector of y values
         self.yValues = np.asarray(list(yList))
@@ -45,9 +47,12 @@ class GradientDescent:
                 c += 1
             r += 1
 
-        print self.yValues
-        print self.trainingSets
-        print self.coefficients
+        self.originalTrainingSets = np.copy(self.trainingSets)
+        self.scale()
+
+        # print self.yValues
+        # print self.trainingSets
+        # print self.coefficients
 
     # Write function to find hypothesis using current coefficients and values of a training set
     def hypothesis(self, trainingSetNum):
@@ -76,11 +81,12 @@ class GradientDescent:
         currCost = self.costFunction()
         tempCoefficients = np.zeros((len(self.coefficients)))
         currCoeff = 0;
-        prevCosts = [0]*10
-        prevCostIndex = 0
+        prevCost = 0
+
+        iterations = 0
+
         while(True):
-            prevCosts[prevCostIndex] = currCost
-            prevCostIndex = (prevCostIndex + 1) % len(prevCosts)
+            iterations += 1
             while(currCoeff < len(tempCoefficients)):
                 tempCoefficients[currCoeff] = self.coefficients[currCoeff] - self.delta(currCoeff)
                 currCoeff += 1
@@ -88,14 +94,66 @@ class GradientDescent:
             print tempCoefficients
             print currCost
             self.coefficients = list(tempCoefficients)
+            prevCost = currCost
             currCost = self.costFunction()
-            if(prevCosts[0] == prevCosts[5] and prevCosts[5] == prevCosts[9]):
+            if(prevCost == currCost):
+                print iterations
                 break
+            elif(prevCost > currCost and self.learningRate < (sys.maxint / self.adjRate)):
+                self.learningRate *= self.adjRate
+            elif(prevCost < currCost):
+                self.learningRate /= self.adjRate
 
     def predict(self, xList):
+        #print "started"
+        feature = 1
+        numFeatures = self.originalTrainingSets.shape[0]
+        while(feature < numFeatures):
+            featureRange = np.max(self.originalTrainingSets[feature]) - np.min(self.originalTrainingSets[feature])
+            if(featureRange != 0):
+                featureMean = np.mean(self.originalTrainingSets[feature])
+                #print self.trainingSets[feature]
+                #print featureRange
+                #print featureMean
+                xList[feature - 1] = (xList[feature - 1] - featureMean) / featureRange
+                #print (xList[feature - 1] - featureMean) / featureRange
+            feature += 1
+
+
         xValues = np.asarray([1] + xList)
+        #print xValues
         xValues = xValues.transpose()
         return np.matmul(self.coefficients, xValues)
+
+    def numTrainingSets(self):
+        return self.trainingSets.shape[1]
+
+    def setAdjRate(self, ar):
+        self.adjRate = ar
+
+    def scale(self):
+        feature = 0
+        numFeatures = self.trainingSets.shape[0]
+        numTS = self.numTrainingSets()
+
+        #print self.trainingSets
+
+        while(feature < numFeatures):
+            ts = 0
+            featureRange = np.max(self.trainingSets[feature]) - np.min(self.trainingSets[feature])
+            if(featureRange == 0):
+                feature += 1
+                continue
+            featureMean = np.mean(self.trainingSets[feature])
+            while(ts < numTS):
+                #print self.trainingSets[feature, ts]
+                #print (self.trainingSets[feature, ts] - featureMean) / featureRange
+                self.trainingSets[feature, ts] = (self.trainingSets[feature, ts] - featureMean) / featureRange
+                ts += 1
+            feature += 1
+
+        #print self.trainingSets
+
 
 if __name__ == '__main__':
     print "Hello"
@@ -103,6 +161,6 @@ if __name__ == '__main__':
     yList = [5, 6, 7, 8]
     gd = GradientDescent(0.001, yList, xLists)
     gd.train()
-    p = gd.predict(xLists[0])
+    p = gd.predict(xLists[2])
     print p
     print gd.coefficients
