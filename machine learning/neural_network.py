@@ -60,7 +60,7 @@ class ANN(object):
                 if(curr_epoch % epochs_between_evaluation == 0):
                     print "Calculating current accuracy..."
                     percent_accurate = self.evaluate_accuracy(test_data)
-                    print "Current accuracy is " + str(percent_accurate) + "% (" + str(percent_accurate * len(training_data)) + "/" + str(len(training_data)) + ")"
+                    print "Current accuracy is " + str(percent_accurate) + "% (" + str(percent_accurate/100.0 * len(training_data)) + "/" + str(len(training_data)) + ")"
 
         #nn_info.close()
 
@@ -108,7 +108,7 @@ class ANN(object):
                     del_weight[layer_index][dest_neuron][source_neuron] = activations[layer_index][source_neuron] * errors[layer_index][dest_neuron]
         """
         for layer_index in xrange(len(self.weights)):
-            del_weight[layer_index] = np.dot(activations[layer_index], errors[layer_index])
+            del_weight[layer_index] = np.dot(activations[layer_index + 1], np.transpose(errors[layer_index]))
         return errors, del_weight
 
     def feedforward(self, inputs):
@@ -157,7 +157,7 @@ class ANN(object):
             if(np.argmax(activation) == set[1]):
                 num_correct += 1
 
-        return 100.0 * num_correct / (1.0 * len(test_data))
+        return (100.0 * num_correct) / (len(test_data))
 
 if __name__ == '__main__':
     np.set_printoptions(threshold=np.inf)
